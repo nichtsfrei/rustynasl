@@ -152,14 +152,12 @@ pub enum InterpreteResult {
 
 }
 
-pub fn interpret(mut lexer: Lexer, known_functions: Option<NASLFunctions>) -> InterpreteResult {
+pub fn interpret(lexer: Lexer, known_functions: Option<NASLFunctions>) -> InterpreteResult {
     
     let scoped_functions = known_functions.unwrap_or_default().clone();
     let mut state = State::Init;
-    loop {
-        let token = lexer.next();
+    for token in lexer {
         match token {
-            Token::EOF => return InterpreteResult::EOF,
             Token::Illegal(a) => return InterpreteResult::Invalid(a),
             Token::Word(a) => {
                 match state {
@@ -204,4 +202,5 @@ pub fn interpret(mut lexer: Lexer, known_functions: Option<NASLFunctions>) -> In
             }
         }
     }
+    return InterpreteResult::EOF;
 }

@@ -10,7 +10,6 @@ pub struct Lexer {
 #[derive(PartialEq, Debug)]
 pub enum Token {
     Illegal(Vec<char>),
-    EOF,
     LParen, //(
     RParen, //)
     Semicolon,
@@ -35,7 +34,7 @@ impl Lexer {
 
     fn read(&mut self) {
         if self.read_pos >= self.input.len() {
-            self.ch = '0';
+            self.ch = '\0';
         } else {
             self.ch = self.input[self.read_pos];
         }
@@ -57,18 +56,22 @@ impl Lexer {
         }
     }
 
-    pub fn next(&mut self) -> Token {
+}
+
+impl Iterator for Lexer {
+    type Item = Token;
+    fn next(&mut self) -> Option<Self::Item> {
         let result: Token;
         self.skip_whitespace();
         match self.ch {
-            '(' => { result = Token::LParen; }
-            ')' => { result = Token::RParen; }
-            ';' => { result = Token::Semicolon; }
-            '\0' => { result = Token::EOF; } 
+            '(' => result = Token::LParen,
+            ')' => result = Token::RParen,
+            ';' => result = Token::Semicolon,
+            '\0' => return None, 
             _ => {
                 // we need to skip the self.read on alphabetic or word
                 if self.ch.is_alphanumeric() {
-                    return Token::Word(self.read_word())
+                    return Some(Token::Word(self.read_word()))
                 } else {
                     result = Token::Illegal(self.input[self.pos..].to_vec());
                 }
@@ -76,6 +79,7 @@ impl Lexer {
             }
         }
         self.read();
-        return result;
+        return Some(result);
      }
+
 }
