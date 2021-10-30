@@ -4,7 +4,7 @@ pub struct Lexer {
     pub input: Vec<char>,
     pub pos: usize,
     read_pos: usize,
-    ch: char
+    ch: char,
 }
 
 #[derive(PartialEq, Debug)]
@@ -47,7 +47,7 @@ impl Lexer {
         while self.ch.is_alphanumeric() {
             self.read()
         }
-        return self.input[pos..self.pos].to_vec()
+        return self.input[pos..self.pos].to_vec();
     }
 
     fn skip_whitespace(&mut self) {
@@ -55,7 +55,6 @@ impl Lexer {
             self.read();
         }
     }
-
 }
 
 impl Iterator for Lexer {
@@ -67,19 +66,17 @@ impl Iterator for Lexer {
             '(' => result = Token::LParen,
             ')' => result = Token::RParen,
             ';' => result = Token::Semicolon,
-            '\0' => return None, 
+            '\0' => return None,
             _ => {
                 // we need to skip the self.read on alphabetic or word
                 if self.ch.is_alphanumeric() {
-                    return Some(Token::Word(self.read_word()))
+                    return Some(Token::Word(self.read_word()));
                 } else {
                     result = Token::Illegal(self.input[self.pos..].to_vec());
                 }
-
             }
         }
         self.read();
         return Some(result);
-     }
-
+    }
 }
