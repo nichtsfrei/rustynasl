@@ -1,2 +1,2 @@
 [workspace]
-members = ["lexer", "example"]
+members = ["nasl", "example"]

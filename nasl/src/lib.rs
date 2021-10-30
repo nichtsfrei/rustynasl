@@ -1,6 +1,7 @@
-mod lexer;
+pub mod lexer;
+pub mod interpreter;
+
 pub use lexer::Lexer;
-pub use lexer::Token;
 #[cfg(test)]
 mod tests {
     #[test]

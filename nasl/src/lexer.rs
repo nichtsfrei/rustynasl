@@ -9,25 +9,24 @@ pub struct Lexer {
 
 #[derive(PartialEq, Debug)]
 pub enum Token {
-    ILLEGAL(Vec<char>),
+    Illegal(Vec<char>),
     EOF,
-    LPAREN, //(
-    RPAREN, //)
-    SEMICOLON,
+    LParen, //(
+    RParen, //)
+    Semicolon,
     //LBRACE, //{
     //RBRACE, //}
     //LBRACKET, //[
     //RBRACKET, //]
     //PLUS,
     //MINUS,
-    NUMERIC(Vec<char>), // we keep it as vec char because we may need the sign for interpration
-    WORD(Vec<char>),
+    Word(Vec<char>),
 }
 
 impl Lexer {
     pub fn new(input: Vec<char>) -> Self {
         Self {
-            input: input,
+            input,
             pos: 0,
             read_pos: 0,
             ch: ' ',
@@ -46,15 +45,7 @@ impl Lexer {
 
     fn read_word(&mut self) -> Vec<char> {
         let pos = self.pos;
-        while self.ch.is_alphabetic() {
-            self.read()
-        }
-        return self.input[pos..self.pos].to_vec()
-    }
-
-    fn read_numeric(&mut self) -> Vec<char> {
-        let pos = self.pos;
-        while self.ch.is_numeric() {
+        while self.ch.is_alphanumeric() {
             self.read()
         }
         return self.input[pos..self.pos].to_vec()
@@ -70,18 +61,16 @@ impl Lexer {
         let result: Token;
         self.skip_whitespace();
         match self.ch {
-            '(' => { result = Token::LPAREN; }
-            ')' => { result = Token::RPAREN; }
-            ';' => { result = Token::SEMICOLON; }
+            '(' => { result = Token::LParen; }
+            ')' => { result = Token::RParen; }
+            ';' => { result = Token::Semicolon; }
             '\0' => { result = Token::EOF; } 
             _ => {
                 // we need to skip the self.read on alphabetic or word
-                if self.ch.is_alphabetic() {
-                    return Token::WORD(self.read_word())
-                } else if self.ch.is_numeric() {
-                    return Token::NUMERIC(self.read_numeric())
+                if self.ch.is_alphanumeric() {
+                    return Token::Word(self.read_word())
                 } else {
-                    result = Token::ILLEGAL(self.input[self.pos..].to_vec());
+                    result = Token::Illegal(self.input[self.pos..].to_vec());
                 }
 
             }
