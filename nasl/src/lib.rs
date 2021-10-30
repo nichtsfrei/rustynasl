@@ -5,6 +5,7 @@ pub use lexer::Lexer;
 #[cfg(test)]
 mod tests {
     use crate::lexer::{Lexer, Token};
+    use crate::interpreter::{interpret, InterpreteResult};
     #[test]
     fn it_interprets_exit() {
         let expected: Vec<Token> = vec![
@@ -15,10 +16,13 @@ mod tests {
             Token::Semicolon,
         ];
         let mut actual: Vec<Token> = vec![];
-        for t in Lexer::new("  \r\nexit(42);".chars().collect()) {
+        let data: Vec<char> = "  \r\nexit(42);".chars().collect();
+        for t in Lexer::new(Box::new(data.into_iter())) {
             actual.push(t);
         }
 
         assert_eq!(expected, actual);
+
+        
     }
 }

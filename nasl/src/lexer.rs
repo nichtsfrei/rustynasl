@@ -1,15 +1,13 @@
 use std::char;
 
-pub struct Lexer {
-    pub input: Vec<char>,
-    pub pos: usize,
-    read_pos: usize,
+pub struct Lexer{
+    pub input: Box<dyn Iterator<Item=char>>,
     ch: char,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum Token {
-    Illegal(Vec<char>),
+    Illegal(char),
     LParen, //(
     RParen, //)
     Semicolon,
@@ -23,31 +21,27 @@ pub enum Token {
 }
 
 impl Lexer {
-    pub fn new(input: Vec<char>) -> Self {
+    pub fn new(input: Box<dyn Iterator<Item=char>>) -> Self {
         Self {
             input,
-            pos: 0,
-            read_pos: 0,
             ch: ' ',
         }
     }
 
     fn read(&mut self) {
-        if self.read_pos >= self.input.len() {
-            self.ch = '\0';
-        } else {
-            self.ch = self.input[self.read_pos];
+        match self.input.next() {
+            Some(c) => self.ch = c,
+            None => self.ch = '\0',
         }
-        self.pos = self.read_pos;
-        self.read_pos = self.read_pos + 1;
     }
 
     fn read_word(&mut self) -> Vec<char> {
-        let pos = self.pos;
+        let mut result = vec![ ];
         while self.ch.is_alphanumeric() {
-            self.read()
+            result.push(self.ch);
+            self.read();
         }
-        return self.input[pos..self.pos].to_vec();
+        return result;
     }
 
     fn skip_whitespace(&mut self) {
@@ -72,7 +66,7 @@ impl Iterator for Lexer {
                 if self.ch.is_alphanumeric() {
                     return Some(Token::Word(self.read_word()));
                 } else {
-                    result = Token::Illegal(self.input[self.pos..].to_vec());
+                    result = Token::Illegal(self.ch);
                 }
             }
         }

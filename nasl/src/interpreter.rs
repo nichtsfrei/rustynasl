@@ -149,11 +149,11 @@ enum State {
     Failure(Vec<char>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InterpreteResult {
     Exit(i32),
     EOF,
-    Invalid(Vec<char>),
+    Invalid(char),
     NotImplemented,
 }
 
