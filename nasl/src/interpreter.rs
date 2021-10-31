@@ -20,8 +20,20 @@ pub struct Func {
     arg_len: usize,
 }
 
+impl Func {
+    pub fn run(
+        self,
+        args: Vec<FunctionArgument>,
+        params: Option<RuntimeParameter>,
+    ) -> Result<ResultType, Box<dyn Error>> {
+        (self.runner)(self.name, args, params)
+    }
+}
+// https://github.com/rust-lang/rust/issues/41517 waitiung for trait alias
+//trait Runnable = Fn(Vec<FunctionArgument>, Option<RuntimeParameter>) -> Result<ResultType, Box<dyn Error>>;
+
 trait CloneableFn:
-    Fn(Vec<FunctionArgument>, Option<RuntimeParameter>) -> Result<ResultType, Box<dyn Error>>
+    Fn(String, Vec<FunctionArgument>, Option<RuntimeParameter>) -> Result<ResultType, Box<dyn Error>>
 {
     fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
     where
@@ -30,7 +42,11 @@ trait CloneableFn:
 
 impl<F> CloneableFn for F
 where
-    F: Fn(Vec<FunctionArgument>, Option<RuntimeParameter>) -> Result<ResultType, Box<dyn Error>>
+    F: Fn(
+            String,
+            Vec<FunctionArgument>,
+            Option<RuntimeParameter>,
+        ) -> Result<ResultType, Box<dyn Error>>
         + Clone,
 {
     fn clone_box<'a>(&self) -> Box<dyn 'a + CloneableFn>
@@ -43,7 +59,7 @@ where
 
 impl Clone for Func {
     fn clone(&self) -> Self {
-        Func {
+        Self {
             name: self.name.clone(),
             arg_len: self.arg_len,
             runner: self.runner.clone_box(),
@@ -71,21 +87,17 @@ impl NASLFunctions {
         name: &str,
         args: Vec<FunctionArgument>,
     ) -> Result<ResultType, Box<dyn Error>> {
-        let fuck_borrowing = &Func {
+        let not_found = &Func {
             name: name.to_string(),
             arg_len: args.len(),
-            runner: Box::new(|_a, _p| {
-                Err(Box::new(UnexpectedError {
-                    description: "bla".to_string(),
-                }))
-            }),
+            runner: Box::new(|s, _a, _p| Err(Box::new(UnexpectedError { description: s }))),
         };
         let func = self
             .functions
             .iter()
-            .find(|x| x.name == name.to_string())
-            .unwrap_or(fuck_borrowing);
-        return (func.runner)(args, None);
+            .find(|x| x.name == name.to_string() && x.arg_len == args.len())
+            .unwrap_or(not_found);
+        return (func.runner)(name.to_string(), args, None);
     }
 }
 
@@ -107,7 +119,7 @@ impl Error for UnexpectedError {
 }
 
 impl UnexpectedError {
-    pub fn new(name: &str, args_len: usize, expected: usize) -> Self {
+    pub fn args_len(name: &str, args_len: usize, expected: usize) -> Self {
         UnexpectedError {
             description: format!(
                 "{} expects {} arguments but got {}",
@@ -121,7 +133,7 @@ impl Default for NASLFunctions {
     fn default() -> Self {
         let mut result = NASLFunctions::new();
         result.register(Func {
-            runner: Box::new(|args, _params| match args.len() {
+            runner: Box::new(|name, args, _params| match args.len() {
                 1 => {
                     let input: String = args[0].value.iter().collect();
                     match input.parse::<i32>() {
@@ -131,7 +143,7 @@ impl Default for NASLFunctions {
                         }
                     }
                 }
-                n => Err(Box::new(UnexpectedError::new("exit", n, 1))),
+                n => Err(Box::new(UnexpectedError::args_len(&name, n, 1))),
             }),
             arg_len: 1,
             name: "exit".to_string(),
@@ -150,19 +162,19 @@ enum State {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum InterpreteResult {
+pub enum InterpretResult {
     Exit(i32),
     EOF,
     Invalid(char),
     NotImplemented,
 }
 
-pub fn interpret(lexer: Lexer, known_functions: Option<NASLFunctions>) -> InterpreteResult {
+pub fn interpret(lexer: Lexer, known_functions: Option<NASLFunctions>) -> InterpretResult {
     let scoped_functions = known_functions.unwrap_or_default().clone();
     let mut state = State::Init;
     for token in lexer {
         match token {
-            Token::Illegal(a) => return InterpreteResult::Invalid(a),
+            Token::Illegal(a) => return InterpretResult::Invalid(a),
             Token::Word(a) => match state {
                 State::Init => state = State::InWord(a),
                 State::InFunction(f, ar) => {
@@ -173,11 +185,11 @@ pub fn interpret(lexer: Lexer, known_functions: Option<NASLFunctions>) -> Interp
                     });
                     state = State::InFunction(f, args);
                 }
-                _ => return InterpreteResult::NotImplemented,
+                _ => return InterpretResult::NotImplemented,
             },
             Token::LParen => match state {
                 State::InWord(f) => state = State::InFunction(f.iter().collect(), vec![]),
-                _ => return InterpreteResult::NotImplemented,
+                _ => return InterpretResult::NotImplemented,
             },
             Token::RParen => match state {
                 State::InFunction(f, a) => state = State::Function(f, a),
@@ -188,15 +200,15 @@ pub fn interpret(lexer: Lexer, known_functions: Option<NASLFunctions>) -> Interp
                     let functions = scoped_functions.clone();
                     match functions.run(f.as_str(), a) {
                         Ok(rt) => match rt {
-                            ResultType::Exit(rc) => return InterpreteResult::Exit(rc),
+                            ResultType::Exit(rc) => return InterpretResult::Exit(rc),
                             _ => state = State::ResultFunction(rt),
                         },
                         Err(_e) => state = State::Failure(vec![]),
                     }
                 }
-                _ => return InterpreteResult::NotImplemented,
+                _ => return InterpretResult::NotImplemented,
             },
         }
     }
-    return InterpreteResult::EOF;
+    return InterpretResult::EOF;
 }

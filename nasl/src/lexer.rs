@@ -1,7 +1,7 @@
 use std::char;
 
-pub struct Lexer{
-    pub input: Box<dyn Iterator<Item=char>>,
+pub struct Lexer {
+    pub input: Box<dyn Iterator<Item = char>>,
     ch: char,
 }
 
@@ -21,11 +21,8 @@ pub enum Token {
 }
 
 impl Lexer {
-    pub fn new(input: Box<dyn Iterator<Item=char>>) -> Self {
-        Self {
-            input,
-            ch: ' ',
-        }
+    pub fn new(input: Box<dyn Iterator<Item = char>>) -> Self {
+        Self { input, ch: ' ' }
     }
 
     fn read(&mut self) {
@@ -36,7 +33,7 @@ impl Lexer {
     }
 
     fn read_word(&mut self) -> Vec<char> {
-        let mut result = vec![ ];
+        let mut result = vec![];
         while self.ch.is_alphanumeric() {
             result.push(self.ch);
             self.read();
