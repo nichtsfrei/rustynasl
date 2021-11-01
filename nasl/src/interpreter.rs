@@ -170,7 +170,7 @@ pub enum InterpretResult {
 }
 
 pub fn interpret(lexer: Lexer, known_functions: Option<NASLFunctions>) -> InterpretResult {
-    let scoped_functions = known_functions.unwrap_or_default().clone();
+    let scoped_functions = known_functions.unwrap_or_default();
     let mut state = State::Init;
     for token in lexer {
         match token {
