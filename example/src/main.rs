@@ -3,6 +3,7 @@ use nasl;
 use std::fs::File;
 use std::io::Read;
 use std::str::from_utf8;
+use std::collections::HashMap;
 
 struct BytesToChar {
     bytes: Box<dyn Iterator<Item = u8>>,
@@ -44,10 +45,12 @@ impl Iterator for BytesToChar {
 }
 
 fn main() {
-    match File::open("plugins/just-exit.nasl") {
+    let mut rp: HashMap<String, Vec<char>> = HashMap::new();
+    rp.insert("description".to_string(), vec!('1'));
+    match File::open("plugins/conditional-exit.nasl") {
         Ok(file) => {
             let l = nasl::Lexer::new(Box::new(BytesToChar::from_file(file)));
-            match nasl::interpreter::interpret(l, None) {
+            match nasl::interpreter::interpret(l, rp, None) {
                 nasl::InterpretResult::Exit(rc) => std::process::exit(rc),
                 r => panic!("unexpected result of interpreter = {:?}", r),
             }

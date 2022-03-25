@@ -1,7 +1,8 @@
 use crate::lexer::{Lexer, Token};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
+use std::collections::HashMap;
+
 
 #[derive(Debug, Clone)]
 pub struct FunctionArgument {
@@ -96,19 +97,16 @@ impl NASLFunctions {
             runner: Box::new(|s, _a, _p| Err(Box::new(UnexpectedError { description: s }))),
         };
         // lookup parameter
-        let ra: Vec<FunctionArgument> = args
-            .iter()
-            .map(|x| {
-                let input: String = x.value.iter().collect();
-                if let Some(nv) = parameter.get(&input) {
-                    return FunctionArgument {
-                        name: x.name.clone(),
-                        value: nv.clone(),
-                    };
-                }
-                return x.clone();
-            })
-            .collect();
+        let ra: Vec<FunctionArgument> = args.iter().map( |x| {
+            let input: String = x.value.iter().collect();
+            if let Some(nv) = parameter.get(&input) {
+                return FunctionArgument {
+                    name: x.name.clone(),
+                    value: nv.clone(),
+                };
+            }
+            return x.clone();
+        }).collect();
         let func = self
             .functions
             .iter()
@@ -169,7 +167,8 @@ impl Default for NASLFunctions {
             runner: Box::new(|name, args, _params| match args.len() {
                 1 => {
                     let input: String = args[0].value.iter().collect();
-                    match input.parse::<i32>() {
+                    println!("using input {:?}", input);
+                                       match input.parse::<i32>() {
                         Ok(i) => return Ok(ResultType::IfResult(i != 0)),
                         Err(err) => {
                             return Err(Box::new(err));
@@ -202,11 +201,7 @@ pub enum InterpretResult {
     NotImplemented,
 }
 
-pub fn interpret(
-    lexer: Lexer,
-    parameter: HashMap<String, Vec<char>>,
-    known_functions: Option<NASLFunctions>,
-) -> InterpretResult {
+pub fn interpret(lexer: Lexer, parameter: HashMap<String, Vec<char>>, known_functions: Option<NASLFunctions>) -> InterpretResult {
     let scoped_functions = known_functions.unwrap_or_default();
     let mut state = State::Init;
 
@@ -215,35 +210,34 @@ pub fn interpret(
         println!("checking {:?}", combination);
         match combination {
             (State::Failure(x), _) => return InterpretResult::Invalid(x),
-            (_, Token::Illegal(a)) => return InterpretResult::Invalid(vec![a]),
+            (_, Token::Illegal(a)) => return InterpretResult::Invalid(vec!(a)),
             (State::InFunction(f, ar), Token::Word(a)) => {
-                let mut args = ar;
-                args.push(FunctionArgument {
-                    name: None,
-                    value: a,
-                });
-                state = State::InFunction(f, args);
-            }
+                     let mut args = ar;
+                    args.push(FunctionArgument {
+                        name: None,
+                        value: a,
+                    });
+                    state = State::InFunction(f, args);
 
-            (State::InWord(f), Token::LParen) => {
-                state = State::InFunction(f.iter().collect(), vec![])
-            }
+            },
+
+            (State::InWord(f), Token::LParen) => state = State::InFunction(f.iter().collect(), vec![]),
             (State::InFunction(f, a), Token::RParen) => {
-                let functions = scoped_functions.clone();
-                match functions.run(f.as_str(), a, parameter.clone()) {
-                    Ok(rt) => match rt {
-                        ResultType::Exit(rc) => return InterpretResult::Exit(rc),
-                        _ => state = State::ResultFunction(rt),
-                    },
-                    Err(_e) => state = State::Failure(vec![]),
-                }
-            }
+                    let functions = scoped_functions.clone();
+                    match functions.run(f.as_str(), a, parameter.clone() ) {
+                        Ok(rt) => match rt {
+                            ResultType::Exit(rc) => return InterpretResult::Exit(rc),
+                            _ => state = State::ResultFunction(rt),
+                        },
+                        Err(_e) => state = State::Failure(vec![]),
+                    }
+            },
             (State::ResultFunction(ResultType::IfResult(false)), Token::Semicolon) => {
-                state = State::Init;
-            }
+                state = State::Init; 
+            },
             (State::ResultFunction(ResultType::IfResult(false)), _) => {
                 state = State::ResultFunction(ResultType::IfResult(false));
-            }
+            },
             (_, Token::Semicolon) => return InterpretResult::NotImplemented,
             (_, Token::Word(a)) => state = State::InWord(a),
             (_, Token::LParen) => return InterpretResult::NotImplemented, //TODO adjust to execute
